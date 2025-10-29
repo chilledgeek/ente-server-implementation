@@ -1,6 +1,8 @@
 # Ente Self-Hosted Setup (Fedora 42)
 
 ## Configure client (remote account setup)
+- (Assumes server is setup and accessible via local network)
+- Download app of choice [here](https://ente.io/download/)
 - Figure out <ente-server-ip> value (obtain from server or wifi router)
 - Open desktop/mobile app (or web at http://<ente-server-ip>:3000)
 - Add server endpoint:
@@ -83,7 +85,7 @@ systemctl --user start ente.service
 # systemctl --user daemon-reload
 ```
 
-### 4. Backup + Restore
+### 4. Backup + Restore (ensure autostart removed if moving dir)
 
 ```bash
 # Setup paths
