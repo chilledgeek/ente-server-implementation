@@ -563,11 +563,11 @@ services:
       CORS_ALLOWED_METHODS: "${CORS_ALLOWED_METHODS}"
       CORS_ALLOWED_HEADERS: "${CORS_ALLOWED_HEADERS}"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/ping"]
-      interval: 60s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ping >/dev/null || exit 1"]
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 20s
 
   socat:
     image: ${SOCAT_IMAGE}

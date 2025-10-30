@@ -155,6 +155,11 @@ $PODMAN_ENTE_SCRIPT_PATH -y setup $RESTORE_DIR
   ```
 
 ### Desktop App Troubleshoot
-- If Ente linux desktop app freezes, `pkill -9 ente`
+- If Ente linux desktop app freezes:
+  ```
+  pkill -9 ente
+  rm -rf ~/.config/ente
+  rm -rf ~/.cache/ente-updater/*
+  ```
 - If Ente mobile app freezes, uninstall/install app
 - Will have to setup the app again
