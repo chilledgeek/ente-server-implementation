@@ -55,37 +55,85 @@ $PODMAN_ENTE_SCRIPT_PATH -y setup $ENTE_INSTANCE_ROOT_DIR
 
 ```bash
 # Create systemd service file
-# NOTE: Replace /path/to/my-ente with your actual instance path
-INSTANCE_PATH="/home/eframework/Documents/ente/my-ente"
+# NOTE: Replace /storage/my-ente with your actual instance path
 
-mkdir -p ~/.config/systemd/user
-cat > ~/.config/systemd/user/ente.service <<EOF
+# 1. Enable lingering (for SSH logout survival)
+sudo loginctl enable-linger e
+
+# 2. Update the system service to ensure it starts at boot
+sudo tee /etc/systemd/system/ente.service > /dev/null <<'EOF'
 [Unit]
 Description=Ente Self-Hosted
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/podman-compose -f $INSTANCE_PATH/compose.yaml up -d
-ExecStop=/usr/bin/podman-compose -f $INSTANCE_PATH/compose.yaml down
 RemainAfterExit=yes
+ExecStart=/usr/bin/podman-compose -f /storage/my-ente/compose.yaml up -d
+ExecStop=/usr/bin/podman-compose -f /storage/my-ente/compose.yaml down
+Restart=on-failure
+RestartSec=10
+User=e
+Group=e
+WorkingDirectory=/storage/my-ente
+Environment=HOME=/home/e
+Environment=USER=e
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+# Wait for network to be truly ready
+ExecStartPre=/bin/sleep 10
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 EOF
 
-# Enable and start (no sudo needed - user service)
-systemctl --user enable ente.service
-systemctl --user start ente.service
+# 3. Enable the service to start at boot
+sudo systemctl daemon-reload
+sudo systemctl enable ente.service
+
+# 4. Start the service now
+sudo systemctl restart ente.service
+
+# 5. Verify it's working
+sudo systemctl status ente.service
+podman-compose ps
 
 # To disable/remove autostart later:
-# systemctl --user stop ente.service
-# systemctl --user disable ente.service
-# rm ~/.config/systemd/user/ente.service
-# systemctl --user daemon-reload
+# sudo systemctl stop ente.service
+# sudo systemctl disable ente.service
+# sudo rm /etc/systemd/system/ente.service
+# systemctl daemon-reload
 ```
 
-### 4. Backup + Restore (ensure autostart removed if moving dir)
+### 4. Prevent Server Sleeping
+
+```
+# Create the logind.conf to prevent sleep
+sudo mkdir -p /etc/systemd
+sudo tee /etc/systemd/logind.conf > /dev/null << 'EOF'
+[Login]
+HandlePowerKey=ignore
+HandleSuspendKey=ignore
+HandleHibernateKey=ignore
+HandleLidSwitch=ignore
+HandleLidSwitchExternalPower=ignore
+HandleLidSwitchDocked=ignore
+IdleAction=ignore
+PowerKeyIgnoreInhibited=yes
+SuspendKeyIgnoreInhibited=yes
+HibernateKeyIgnoreInhibited=yes
+LidSwitchIgnoreInhibited=yes
+EOF
+
+# Restart logind
+sudo systemctl restart systemd-logind
+
+# Also mask sleep targets for extra protection
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+
+### 5. Backup + Restore (ensure autostart removed if moving dir)
 
 ```bash
 # Setup paths
